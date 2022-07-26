@@ -18,3 +18,5 @@ For the purpose of this project we implemented the next models and we found the 
 ## Code
 
 ## Results
+
+## Paper
