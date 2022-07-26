@@ -19,7 +19,8 @@ from detectron2.config import get_cfg
 from detectron2.data import MetadataCatalog, DatasetCatalog
 from detectron2.engine import DefaultPredictor
 import pickle
-from utils import save_preview_input_gt_output, apply_lut_mask, AsbestosTrainer
+from utils import save_preview_input_gt_output, apply_lut_mask
+from trainer_dec2 import AsbestosTrainer
 
 TRAIN = True
 EVALUATE = True

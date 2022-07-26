@@ -1,6 +1,6 @@
 import numpy as np
 import cv2
-from .preview import apply_lut_mask
+from utils.preview import apply_lut_mask
 import pandas as pd
 import matplotlib.pyplot as plt
 import PIL.Image as Image

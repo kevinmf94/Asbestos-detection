@@ -49,7 +49,7 @@ for loc in IMAGE_SETS:
                     crop_img = img[y:y + h, x:x + w]
                     crop_mask = mask[y:y + h, x:x + w]
                     postprocess_and_save(crop_img, f"{OUTPUT_FOLDER}/Test_images/{loc}_{imgId}_{i}_{classId}.png")
-                    postprocessmask_and_save(crop_mask, f"{OUTPUT_FOLDER}/Test_masks/{loc}_{imgId}_{i}_{classId}.png")
+                    postprocessmask_and_save(crop_mask, f"{OUTPUT_FOLDER}/Test_masks/{loc}_{imgId}_{i}_{classId}.png", other_class=4)
 
                     data_csv.loc[len(data_csv.index)] = {
                         'Loc': loc,
