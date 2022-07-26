@@ -16,3 +16,5 @@ For the purpose of this project we implemented the next models and we found the 
 - Triple embedding using ResNet18 -> Embedding Space ([PyTorch](https://pytorch.org/))
 
 ## Code
+
+## Results
