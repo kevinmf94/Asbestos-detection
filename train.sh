@@ -1,2 +1,2 @@
-mkdir experiment33
-screen -S experiment33 -L -Logfile experiment33/out.txt python train_dec2.py
+mkdir output_experiment46
+screen -S output_experiment46 -L -Logfile output_experiment46/out.txt python train_dec2.py

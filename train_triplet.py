@@ -18,7 +18,7 @@ from torchvision.models import ResNet18_Weights, resnet18
 
 ## Constants
 DATASET_FOLDER = 'dav_dataset'
-EXPERIMENT = "experiment32"
+EXPERIMENT = "experiment_triplet_1"
 TRAIN = True
 TEST = True
 EMBEDDING_DIM = 256

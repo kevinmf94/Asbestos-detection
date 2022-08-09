@@ -1,17 +1,113 @@
+import copy
+import itertools
+from typing import Optional
+
 import torch
 import datetime
 import logging
 import time
 import os
 import numpy as np
+import math
 
-from detectron2.data import DatasetMapper
+from detectron2.data import DatasetMapper, DatasetCatalog
 from detectron2.data import build_detection_test_loader, build_detection_train_loader
+from detectron2.data.samplers import TrainingSampler
+from detectron2.data.transforms import Augmentation
 from detectron2.evaluation import COCOEvaluator
 from detectron2.utils import comm
 from detectron2.utils.logger import log_every_n_seconds
 from detectron2.data import transforms as T
 from detectron2.engine import DefaultTrainer, HookBase
+import detectron2.data.detection_utils as utils
+from fvcore.transforms.transform import Transform, NoOpTransform
+
+import albumentations as A
+from torch.utils.data.sampler import WeightedRandomSampler
+
+
+class AlbumentationsTransform(Transform):
+    def __init__(self, aug, params):
+        self.aug = aug
+        self.params = params
+
+    def apply_coords(self, coords: np.ndarray) -> np.ndarray:
+        return coords
+
+    def apply_image(self, image):
+        return self.aug.apply(image, **self.params)
+
+    def apply_box(self, box: np.ndarray) -> np.ndarray:
+        try:
+            return np.array(self.aug.apply_to_bboxes(box.tolist(), **self.params))
+        except AttributeError:
+            return box
+
+    def apply_segmentation(self, segmentation: np.ndarray) -> np.ndarray:
+        try:
+            return self.aug.apply_to_mask(segmentation, **self.params)
+        except AttributeError:
+            return segmentation
+
+
+class AlbumentationsWrapper(Augmentation):
+    """
+    Wrap an augmentor form the albumentations library: https://github.com/albu/albumentations.
+    Image, Bounding Box and Segmentation are supported.
+    Example:
+    .. code-block:: python
+        import albumentations as A
+        from detectron2.data import transforms as T
+        from detectron2.data.transforms.albumentations import AlbumentationsWrapper
+
+        augs = T.AugmentationList([
+            AlbumentationsWrapper(A.RandomCrop(width=256, height=256)),
+            AlbumentationsWrapper(A.HorizontalFlip(p=1)),
+            AlbumentationsWrapper(A.RandomBrightnessContrast(p=1)),
+        ])  # type: T.Augmentation
+
+        # Transform XYXY_ABS -> XYXY_REL
+        h, w, _ = IMAGE.shape
+        bbox = np.array(BBOX_XYXY) / [w, h, w, h]
+
+        # Define the augmentation input ("image" required, others optional):
+        input = T.AugInput(IMAGE, boxes=bbox, sem_seg=IMAGE_MASK)
+
+        # Apply the augmentation:
+        transform = augs(input)
+        image_transformed = input.image  # new image
+        sem_seg_transformed = input.sem_seg  # new semantic segmentation
+        bbox_transformed = input.boxes   # new bounding boxes
+
+        # Transform XYXY_REL -> XYXY_ABS
+        h, w, _ = image_transformed.shape
+        bbox_transformed = bbox_transformed * [w, h, w, h]
+    """
+
+    def __init__(self, augmentor):
+        """
+        Args:
+            augmentor (albumentations.BasicTransform):
+        """
+        # super(Albumentations, self).__init__() - using python > 3.7 no need to call rng
+        self._aug = augmentor
+
+    def get_transform(self, image):
+        do = self._rand_range() < self._aug.p
+        if do:
+            params = self.prepare_param(image)
+            return AlbumentationsTransform(self._aug, params)
+        else:
+            return NoOpTransform()
+
+    def prepare_param(self, image):
+        params = self._aug.get_params()
+        if self._aug.targets_as_params:
+            targets_as_params = {"image": image}
+            params_dependent_on_targets = self._aug.get_params_dependent_on_targets(targets_as_params)
+            params.update(params_dependent_on_targets)
+        params = self._aug.update_params(params, **{"image": image})
+        return params
 
 
 class LossEvalHook(HookBase):
@@ -75,16 +171,94 @@ class LossEvalHook(HookBase):
         self.trainer.storage.put_scalars(timetest=12)
 
 
+class AsbestosMapper(DatasetMapper):
+
+    def __call__(self, dataset_dict):
+        dataset_dict = copy.deepcopy(dataset_dict)  # it will be modified by code below
+        # USER: Write your own image loading if it's not from a file
+        image = utils.read_image(dataset_dict["file_name"], format=self.image_format)
+        utils.check_image_size(dataset_dict, image)
+
+        # USER: Remove if you don't do semantic/panoptic segmentation.
+        if "sem_seg_file_name" in dataset_dict:
+            sem_seg_gt = utils.read_image(dataset_dict.pop("sem_seg_file_name"), "L").squeeze(2)
+        else:
+            sem_seg_gt = None
+
+        if dataset_dict['class'] == 1:
+            aug_input = T.AugInput(image, sem_seg=sem_seg_gt)
+            transforms = self.augmentations(aug_input)
+            image, sem_seg_gt = aug_input.image, aug_input.sem_seg
+
+        image_shape = image.shape[:2]  # h, w
+        # Pytorch's dataloader is efficient on torch.Tensor due to shared-memory,
+        # but not efficient on large generic data structures due to the use of pickle & mp.Queue.
+        # Therefore it's important to use torch.Tensor.
+        dataset_dict["image"] = torch.as_tensor(np.ascontiguousarray(image.transpose(2, 0, 1)))
+        if sem_seg_gt is not None:
+            dataset_dict["sem_seg"] = torch.as_tensor(sem_seg_gt.astype("long"))
+
+        # USER: Remove if you don't use pre-computed proposals.
+        # Most users would not need this feature.
+        if self.proposal_topk is not None:
+            utils.transform_proposals(
+                dataset_dict, image_shape, transforms, proposal_topk=self.proposal_topk
+            )
+
+        if not self.is_train:
+            # USER: Modify this if you want to keep them for some reason.
+            dataset_dict.pop("annotations", None)
+            dataset_dict.pop("sem_seg_file_name", None)
+            return dataset_dict
+
+        if "annotations" in dataset_dict:
+            if dataset_dict['class'] == 1:
+                self._transform_annotations(dataset_dict, transforms, image_shape)
+            else:
+                self._transform_annotations(dataset_dict, [], image_shape)
+
+        return dataset_dict
+
 class AsbestosTrainer(DefaultTrainer):
 
     @classmethod
     def build_train_loader(cls, cfg):
-        mapper = DatasetMapper(cfg, is_train=True, augmentations=[
-           # T.RandomFlip(prob=0.5, horizontal=False, vertical=True),
-           # T.RandomFlip(prob=0.5, horizontal=True, vertical=False),
-           # T.RandomCrop('relative', (1, 1))
+        """mapper = AsbestosMapper(cfg, is_train=True, augmentations=[
+            T.RandomFlip(prob=0.3, horizontal=False, vertical=True),
+            T.RandomFlip(prob=0.3, horizontal=True, vertical=False),
+            T.RandomRotation([0.1, 0.3]),
+            T.RandomContrast(5, 5,),
+            T.RandomBrightness(5, 5)
+        ])"""
+
+        dataset = DatasetCatalog.get(cfg.DATASETS.TRAIN[0])
+        mapper = AsbestosMapper(cfg, is_train=True, augmentations=[
+            AlbumentationsWrapper(A.HorizontalFlip(p=0.5)),
+            AlbumentationsWrapper(A.VerticalFlip(p=0.5)),
+            AlbumentationsWrapper(A.ShiftScaleRotate(p=0.5)),
+            AlbumentationsWrapper(A.RandomBrightness(p=0.5)),
+            AlbumentationsWrapper(A.RandomContrast(p=0.5))
         ])
-        return build_detection_train_loader(cfg, mapper=mapper)
+
+        weights = [2, 0.01]
+        samples_weight = np.array([weights[item['class'] - 1] for item in dataset])
+        samples_weight = torch.from_numpy(samples_weight)
+        print("Length dataset {} Samples {}".format(len(dataset), len(samples_weight)))
+
+        multiplier = math.ceil(cfg.SOLVER.MAX_ITER / math.ceil(len(dataset) / cfg.SOLVER.IMS_PER_BATCH))
+        sampler = WeightedRandomSampler(samples_weight, len(samples_weight) * multiplier)
+
+        asb = 0
+        non = 0
+        for i in sampler:
+            if dataset[i]['class'] == 1:
+                asb += 1
+            else:
+                non += 1
+
+        print(f"Asb {asb} Non {non}")
+
+        return build_detection_train_loader(cfg, mapper=mapper, sampler=sampler)
 
     @classmethod
     def build_test_loader(cls, cfg, dataset_name):

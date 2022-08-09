@@ -11,9 +11,10 @@ from sklearn.utils import shuffle
 COLS_CSV = ['Loc', 'Images', 'Image_crop', 'Mask_crop', 'Class', 'Aug']
 RESIZE_ENABLED = True
 RESIZE = (256, 256)
-IMAGE_SETS = ['Bages']
+IMAGE_SETS = ['Bages', 'Zona_Franca']
 N_IMAGES_SETS = {
     'Bages': 62,
+    'Zona_Franca': 5
 }
 INPUT_IMAGES_FOLDER = "images"
 OUTPUT_FOLDER = "dav_dataset"
@@ -48,8 +49,12 @@ for loc in IMAGE_SETS:
                 if size > TH_SIZE:
                     crop_img = img[y:y + h, x:x + w]
                     crop_mask = mask[y:y + h, x:x + w]
+                    #crop_mask = ((conn[1] == i)[y:y + h, x:x + w] * classId).astype(np.uint8)
                     postprocess_and_save(crop_img, f"{OUTPUT_FOLDER}/Test_images/{loc}_{imgId}_{i}_{classId}.png")
-                    postprocessmask_and_save(crop_mask, f"{OUTPUT_FOLDER}/Test_masks/{loc}_{imgId}_{i}_{classId}.png", other_class=4)
+
+                    # Transforms mask to binary problem
+                    crop_mask[crop_mask == 3] = 2
+                    postprocessmask_and_save(crop_mask, f"{OUTPUT_FOLDER}/Test_masks/{loc}_{imgId}_{i}_{classId}.png", other_class=OTHERS_CLASS)
 
                     data_csv.loc[len(data_csv.index)] = {
                         'Loc': loc,
@@ -69,19 +74,17 @@ n_asbestos = asbestos.shape[0]
 n_others = others.shape[0]
 
 # Get random samples from asbestos a divide it
-shuffle_asbestos = shuffle(asbestos)
-val_asb = shuffle_asbestos.iloc[0: int(n_asbestos * 0.1)]
-test_asb = shuffle_asbestos.iloc[int(n_asbestos * 0.1): n_asbestos]
+val_asb = asbestos.iloc[0: int(n_asbestos * 0.2)]
+test_asb = asbestos.iloc[int(n_asbestos * 0.2): n_asbestos]
 print(f'Asbestos -> Val[{val_asb.shape[0]}] Test[{test_asb.shape[0]}]')
 
 # Get random samples from others and divide it
-shuffle_others = shuffle(others)
-val_other = shuffle_others.iloc[0: int(n_others * 0.1)]
-test_other = shuffle_others.iloc[int(n_others * 0.1): n_others]
+val_other = others.iloc[0: int(n_others * 0.2)]
+test_other = others.iloc[int(n_others * 0.2): n_others]
 print(f'Others -> Val[{val_other.shape[0]}] Test[{test_other.shape[0]}]')
 
 val = shuffle(pd.concat([val_asb, val_other]))
 test = shuffle(pd.concat([test_asb, test_other]))
 
-val.to_csv(f'{OUTPUT_FOLDER}/val_bages.csv')
-test.to_csv(f'{OUTPUT_FOLDER}/test_bages.csv')
+val.to_csv(f'{OUTPUT_FOLDER}/val_set.csv')
+test.to_csv(f'{OUTPUT_FOLDER}/test_set.csv')

@@ -22,15 +22,14 @@ import pickle
 from utils import save_preview_input_gt_output, apply_lut_mask
 from trainer_dec2 import AsbestosTrainer
 
-TRAIN = True
-EVALUATE = True
+TRAIN = False
+EVALUATE = False
 EVALUATE_ASBESTOS_CLASSIFICATION = True
-GENERATE_EVAL_IMAGES = True
-EXPERIMENT = "output_experiment33"
+GENERATE_EVAL_IMAGES = False
+EXPERIMENT = "output_experiment46"
 OUTPUT = f"/home/kevinmf94/{EXPERIMENT}"
 
 print("CUDA ON: " + str(torch.cuda.is_available()))
-
 
 def read_dicts(data_set):
     with (open(f'dav_dataset/{data_set}_dec.pkl', "rb")) as file:

@@ -11,7 +11,7 @@ INSTANCES_TRAIN = True
 CLASSES_TO_GENERATE = [1, 2]
 # CLASSES_TO_GENERATE = [1, 2, 3, 4]
 DATASET_FOLDER = 'dav_dataset'
-DATA_AUG = True
+DATA_AUG = False
 
 
 def get_dict(csv):
@@ -67,11 +67,11 @@ if __name__ == '__main__':
             print(" Train generated!")
 
         with open(f'{DATASET_FOLDER}/val_dec.pkl', 'wb') as file:
-            csv = pd.read_csv(f'{DATASET_FOLDER}/val_bages.csv')
+            csv = pd.read_csv(f'{DATASET_FOLDER}/val_set.csv')
             pickle.dump(get_dict(csv), file)
             print(" Val generated!")
 
         with open(f'{DATASET_FOLDER}/test_dec.pkl', 'wb') as file:
-            csv = pd.read_csv(f'{DATASET_FOLDER}/test_bages.csv')
+            csv = pd.read_csv(f'{DATASET_FOLDER}/test_set.csv')
             pickle.dump(get_dict(csv), file)
             print(" Test generated!")

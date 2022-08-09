@@ -4,6 +4,7 @@ from utils import apply_lut_mask
 from PIL import Image
 import cv2
 import numpy as np
+import os
 
 #%%
 dataset = pd.read_csv('dav_dataset/dataset.csv')
@@ -13,6 +14,7 @@ asbestos = dataset[dataset['Class'] == 1]
 others = dataset[dataset['Class'] == 2]
 
 #%%
+os.makedirs('Dataset_dav_examples', exist_ok=True)
 selected = others.sample(10)
 for index, row in selected.iterrows():
     

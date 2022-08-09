@@ -11,7 +11,7 @@ COLS_CSV = ['Loc', 'Images', 'Image_crop', 'Mask_crop', 'Class', 'Aug']
 RESIZE_ENABLED = True
 RESIZE = (256, 256)
 IMAGE_SETS = ['Badalona_SantAdria', 'Castellbisbal', 'Cubelles', 'Gava_Viladecans',
-              'Ginestar', 'Hostalric', 'La_Verneda', 'Montornes_del_Valles', 'Zona_Franca']
+              'Ginestar', 'Hostalric', 'La_Verneda', 'Montornes_del_Valles']
 N_IMAGES_SETS = {
     'Badalona_SantAdria': 4,
     'Castellbisbal': 3,
@@ -53,6 +53,7 @@ for loc in IMAGE_SETS:
                 if size > TH_SIZE:
                     crop_img = img[y:y + h, x:x + w]
                     crop_mask = mask[y:y + h, x:x + w]
+                    #crop_mask = ((conn[1] == i)[y:y + h, x:x + w] * classId).astype(np.uint8)
                     postprocess_and_save(crop_img, f"{OUTPUT_FOLDER}/Images/{loc}_{imgId}_{i}_{classId}.png")
                     postprocessmask_and_save(crop_mask, f"{OUTPUT_FOLDER}/Masks/{loc}_{imgId}_{i}_{classId}.png")
 
