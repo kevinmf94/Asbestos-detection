@@ -54,6 +54,7 @@ def get_dict(csv):
 if __name__ == '__main__':
 
     GENERATE = True
+    print(f"Aug activated {DATA_AUG}")
 
     if GENERATE:
         print("Generating dictionaries...")

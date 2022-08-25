@@ -20,38 +20,43 @@ from torchvision.models import ResNet18_Weights, resnet18
 
 ## Constants 
 DATASET_FOLDER = 'dav_dataset'
-EXPERIMENT = "experiment32"
-TRAIN = False
+EXPERIMENT = "experiment63"
+TRAIN = True
 TEST = True
+ASBESTOS = 1
 
 try:
     os.mkdir(EXPERIMENT)
 except:
     pass
 
+trans_prob = 0.5
 transform_alb = A.Compose([
-    A.HorizontalFlip(p=0.3),
-    A.VerticalFlip(p=0.3),
-    A.ShiftScaleRotate(p=0.3),
-    A.RandomBrightness(p=0.3),
-    A.RandomContrast(p=0.3)
+    A.HorizontalFlip(p=trans_prob),
+    A.VerticalFlip(p=trans_prob),
+    A.ShiftScaleRotate(p=trans_prob),
+    A.RandomBrightness(p=trans_prob),
+    A.RandomContrast(p=trans_prob)
 ])
+
+class_tranform = {2: 0, 1: 1}
 
 
 class AsbestosDataset(VisionDataset):
 
     def __init__(self, set: str, folder: str, transforms: Optional[Callable] = None,
-                 target_transform: Optional[Callable] = None):
+                 target_transform: Optional[Callable] = None, aug_asb_enabled=True):
         super().__init__(set, transform=transforms, target_transform=target_transform)
         self.csv = pd.read_csv(f'{folder}/{set}.csv')
         self.set = set
+        self.aug_asb_enabled = aug_asb_enabled
 
     def __getitem__(self, index: int):
 
         item = self.csv.iloc[index]
-        img, target = Image.open(item['Image_crop']), item['Class'] - 1
+        img, target = Image.open(item['Image_crop']), class_tranform[item['Class']]
 
-        if target == 0 and self.set == 'train':
+        if target == ASBESTOS and self.set == 'train' and self.aug_asb_enabled:
             img = transform_alb(image=np.array(img))['image']
             img = Image.fromarray(img)
 
@@ -85,17 +90,17 @@ print("Total Parameters: {}".format(sum([np.prod(p.size()) for p in model.parame
 
 # Create datasets for training & validation, download if necessary
 training_set = AsbestosDataset('train', DATASET_FOLDER, transforms=transforms)
-validation_set = AsbestosDataset('val_bages', DATASET_FOLDER, transforms=transforms)
-test_set = AsbestosDataset('test_bages', DATASET_FOLDER, transforms=transforms)
+validation_set = AsbestosDataset('val_set', DATASET_FOLDER, transforms=transforms)
+test_set = AsbestosDataset('test_set', DATASET_FOLDER, transforms=transforms)
 
 # Weighted sampler
-weights = [0.7, 0.3]
+weights = [0.1, 4]
 samples_weight = np.array([weights[label.int().item()] for item, label in training_set])
 samples_weight = torch.from_numpy(samples_weight)
 sampler = WeightedRandomSampler(samples_weight, len(samples_weight))
 
 # Create data loaders for our datasets; shuffle for training, not for validation
-training_loader = torch.utils.data.DataLoader(training_set, batch_size=60, sampler=sampler, num_workers=4)
+training_loader = torch.utils.data.DataLoader(training_set, batch_size=100, num_workers=4, sampler=sampler)
 validation_loader = torch.utils.data.DataLoader(validation_set, batch_size=30, shuffle=True, num_workers=1)
 test_loader = torch.utils.data.DataLoader(test_set, batch_size=80, shuffle=False, num_workers=1)
 
@@ -119,7 +124,7 @@ def train_one_epoch(epoch_index, tb_writer):
     i = 0
 
     tacc = Accuracy().to(device)
-    tap = AveragePrecision(pos_label=0).to(device)
+    tap = AveragePrecision().to(device)
     tloss = MeanMetric().to(device)
 
     for inputs, labels in training_loader:
@@ -151,9 +156,9 @@ def train_one_epoch(epoch_index, tb_writer):
             last_ap = tap.compute()
             print('  batch {} loss: {} acc {:.4f} AP: {:.4f} '.format(i + 1, last_loss, last_acc, last_ap))
             tb_x = epoch_index * len(training_loader) + i + 1
-            tb_writer.add_scalar('Loss/train', last_loss, tb_x)
-            tb_writer.add_scalar('Acc/train', last_acc, tb_x)
-            tb_writer.add_scalar('AP/train', last_ap, tb_x)
+            tb_writer.add_scalar('Train/Loss', last_loss, tb_x)
+            tb_writer.add_scalar('Train/Acc', last_acc, tb_x)
+            tb_writer.add_scalar('Train/AP', last_ap, tb_x)
             tloss.reset()
             tacc.reset()
             tap.reset()
@@ -185,7 +190,7 @@ if TRAIN:
         with torch.no_grad():
 
             vacc = Accuracy().to(device)
-            vap = AveragePrecision(pos_label=0).to(device)
+            vap = AveragePrecision().to(device)
             vloss_avg = MeanMetric().to(device)
 
             i = 0
@@ -206,17 +211,12 @@ if TRAIN:
             print('Time: {} LOSS train {:.4f} Acc {:.4f}% AP: {:.4f} valid {:.4f} Acc {:.4f} AP: {:.4f}'
                   .format(exec_time, avg_loss, avg_acc, avg_ap, vloss_avg, vacc.compute(), vap.compute()))
 
-            # Log the running loss averaged per batch
-            # for both training and validation
-            writer.add_scalars('Training vs. Validation Loss',
-                               {'Training': avg_loss, 'Validation': vloss_avg},
-                               epoch_number + 1)
-            writer.add_scalars('Training vs. Validation Acc',
-                               {'Training': avg_acc, 'Validation': vacc.compute()},
-                               epoch_number + 1)
-            writer.add_scalars('Training vs. Validation AP',
-                               {'Training': avg_ap, 'Validation': vap.compute()},
-                               epoch_number + 1)
+            writer.add_scalar('Epoch_Loss/Training', avg_loss, epoch_number + 1)
+            writer.add_scalar('Epoch_Loss/Validation', vloss_avg, epoch_number + 1)
+            writer.add_scalar('Epoch_Acc/Training', avg_acc, epoch_number + 1)
+            writer.add_scalar('Epoch_Acc/Validation', vacc.compute(), epoch_number + 1)
+            writer.add_scalar('Epoch_AP/Training', avg_ap, epoch_number + 1)
+            writer.add_scalar('Epoch_AP/Validation', vap.compute(), epoch_number + 1)
             writer.flush()
 
             # Track best performance, and save the model's state
@@ -238,11 +238,10 @@ if TEST:
     with torch.no_grad():
 
         accuracy = Accuracy().to(device)
-        ap_asb = AveragePrecision(pos_label=0).to(device)
-        ap_builds = AveragePrecision(pos_label=1).to(device)
+        ap = AveragePrecision().to(device)
         confusion = ConfusionMatrix(num_classes=2).to(device)
-        precision = Precision(average='macro', num_classes=2, multiclass=True).to(device)
-        recall = Recall(average='macro', num_classes=2, multiclass=True).to(device)
+        precision = Precision().to(device)
+        recall = Recall().to(device)
         spe = Specificity().to(device)
         PRC = PrecisionRecallCurve().to(device)
 
@@ -253,8 +252,7 @@ if TEST:
             voutputs = model(inputs)
 
             accuracy.update(voutputs, labels)
-            ap_asb.update(voutputs, labels)
-            ap_builds.update(voutputs, labels)
+            ap.update(voutputs, labels)
             confusion.update(voutputs, labels)
             precision.update(voutputs, labels)
             recall.update(voutputs, labels)
@@ -264,11 +262,10 @@ if TEST:
         print("---------- Test METRICS -------------")
         print(confusion.compute())
         print("Accuracy {:.4f}".format(accuracy.compute()))
-        print("AP Asb {:.4f}".format(ap_asb.compute()))
-        print("AP Builds {:.4f}".format(ap_builds.compute()))
+        print("AP {:.4f}".format(ap.compute()))
         print("Precision {:.4f}".format(precision.compute()))
-        print("Recall {:.4f}".format(recall.compute()))
-        print("Specifity (Asbestos Rate) {:.4f}".format(spe.compute()))
+        print("Recall (Asbestos) {:.4f}".format(recall.compute()))
+        print("Specifity (Non-Asbestos) {:.4f}".format(spe.compute()))
 
         precision, recall, thresholds = PRC.compute()
 

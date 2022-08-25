@@ -8,7 +8,7 @@ from utils import postprocess_and_save, postprocessmask_and_save
 from sklearn.utils import shuffle
 
 # %% Paramaters
-COLS_CSV = ['Loc', 'Images', 'Image_crop', 'Mask_crop', 'Class', 'Aug']
+COLS_CSV = ['Loc', 'Images', 'Image_crop', 'Mask_crop', 'Class', 'RealClass', 'Aug']
 RESIZE_ENABLED = True
 RESIZE = (256, 256)
 IMAGE_SETS = ['Bages', 'Zona_Franca']

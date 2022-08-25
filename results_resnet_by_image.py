@@ -8,11 +8,12 @@ import matplotlib.pyplot as plt
 
 ## Constants
 DATASET_FOLDER = 'dav_dataset'
-EXPERIMENT = "experiment32"
-SET = "test_bages"
+EXPERIMENT = "experiment57"
+SET = "test_set"
 
 # Check CUDA
 print("CUDA ON: " + str(torch.cuda.is_available()))
+print(EXPERIMENT)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # Load Model
@@ -46,7 +47,7 @@ with torch.no_grad():
 
         img = img.cuda()
         output = model(img)
-        data.loc[index, "Score"] = 1 - round(output.item(), 5)
+        data.loc[index, "Score"] = round(output.item(), 5)
         i += 1
 
     sort_data = data.sort_values('Score', ascending=False)
@@ -55,6 +56,7 @@ with torch.no_grad():
     y = sort_data['Score'].to_numpy()
 
     sort_data.to_csv(f'{EXPERIMENT}/{SET}_results.csv')
+    plt.figure(dpi=300)
     plt.plot(x, y)
     plt.savefig(f"{EXPERIMENT}/{SET}_score_graph.jpg")
 

@@ -1,2 +1,2 @@
-mkdir output_experiment46
-screen -S output_experiment46 -L -Logfile output_experiment46/out.txt python train_dec2.py
+mkdir experiment63
+screen -S experiment63 -L -Logfile experiment63/out.txt python train_resnet.py

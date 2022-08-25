@@ -4,6 +4,9 @@ dataset/*
 output*/
 dav_dataset*/
 experiment*/
+triplet*/
+Sensivity-SpecifityChart.xlsx
+paper_images/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

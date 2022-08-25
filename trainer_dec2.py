@@ -8,7 +8,6 @@ import logging
 import time
 import os
 import numpy as np
-import math
 
 from detectron2.data import DatasetMapper, DatasetCatalog
 from detectron2.data import build_detection_test_loader, build_detection_train_loader
@@ -22,7 +21,7 @@ from detectron2.engine import DefaultTrainer, HookBase
 import detectron2.data.detection_utils as utils
 from fvcore.transforms.transform import Transform, NoOpTransform
 
-import albumentations as A
+
 from torch.utils.data.sampler import WeightedRandomSampler
 
 
@@ -219,46 +218,53 @@ class AsbestosMapper(DatasetMapper):
 
         return dataset_dict
 
-class AsbestosTrainer(DefaultTrainer):
 
-    @classmethod
-    def build_train_loader(cls, cfg):
-        """mapper = AsbestosMapper(cfg, is_train=True, augmentations=[
-            T.RandomFlip(prob=0.3, horizontal=False, vertical=True),
-            T.RandomFlip(prob=0.3, horizontal=True, vertical=False),
-            T.RandomRotation([0.1, 0.3]),
-            T.RandomContrast(5, 5,),
-            T.RandomBrightness(5, 5)
-        ])"""
+class AsbestosWeightedSampler(TrainingSampler):
 
-        dataset = DatasetCatalog.get(cfg.DATASETS.TRAIN[0])
-        mapper = AsbestosMapper(cfg, is_train=True, augmentations=[
-            AlbumentationsWrapper(A.HorizontalFlip(p=0.5)),
-            AlbumentationsWrapper(A.VerticalFlip(p=0.5)),
-            AlbumentationsWrapper(A.ShiftScaleRotate(p=0.5)),
-            AlbumentationsWrapper(A.RandomBrightness(p=0.5)),
-            AlbumentationsWrapper(A.RandomContrast(p=0.5))
-        ])
-
-        weights = [2, 0.01]
-        samples_weight = np.array([weights[item['class'] - 1] for item in dataset])
-        samples_weight = torch.from_numpy(samples_weight)
-        print("Length dataset {} Samples {}".format(len(dataset), len(samples_weight)))
-
-        multiplier = math.ceil(cfg.SOLVER.MAX_ITER / math.ceil(len(dataset) / cfg.SOLVER.IMS_PER_BATCH))
-        sampler = WeightedRandomSampler(samples_weight, len(samples_weight) * multiplier)
+    def __init__(self, cfg, dataset, weights, size: int, shuffle: bool = True, seed: Optional[int] = None):
+        super().__init__(size, shuffle, seed)
+        self.dataset = dataset
+        self.cfg = cfg
+        self.weights = weights
 
         asb = 0
         non = 0
-        for i in sampler:
-            if dataset[i]['class'] == 1:
+        for i in self.generate_samples():
+            if self.dataset[i]['class'] == 1:
                 asb += 1
             else:
                 non += 1
 
-        print(f"Asb {asb} Non {non}")
+        print(f"Asb {asb} Non: {non}")
 
-        return build_detection_train_loader(cfg, mapper=mapper, sampler=sampler)
+    def generate_samples(self):
+        samples_weight = np.array([self.weights[item['class'] - 1] for item in self.dataset])
+        samples_weight = torch.from_numpy(samples_weight)
+        sampler = WeightedRandomSampler(samples_weight, len(samples_weight))
+        return sampler
+
+    def __iter__(self):
+        yield from itertools.islice(self._infinite_indices(), self._rank, None, self._world_size)
+
+    def _infinite_indices(self):
+        while True:
+            yield from self.generate_samples()
+
+
+class AsbestosTrainer(DefaultTrainer):
+    @classmethod
+    def build_train_loader(cls, cfg):
+        dataset = DatasetCatalog.get(cfg.DATASETS.TRAIN[0])
+
+        print(cfg.AUG_ASB)
+        mapper = AsbestosMapper(cfg, is_train=True, augmentations=cfg.AUG_ASB)
+
+        if cfg.WEIGHTED is not None:
+            sampler = AsbestosWeightedSampler(cfg, dataset, cfg.WEIGHTED, len(dataset))
+            return build_detection_train_loader(cfg, mapper=mapper, sampler=sampler)
+
+        return build_detection_train_loader(cfg, mapper=mapper)
+
 
     @classmethod
     def build_test_loader(cls, cfg, dataset_name):

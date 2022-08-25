@@ -11,14 +11,88 @@ COLS_CSV = ['Loc', 'Images', 'Image_crop', 'Mask_crop', 'Class', 'Aug']
 RESIZE = (256, 256)
 OUTPUT_FOLDER = "dav_dataset"
 ASBESTOS = 1
-IT = 4# We have 406 asbestos -> 406 * IT = Number of aug images
 
 # %% Create folders and CSV and generate dataset
 data_csv = pd.read_csv(f'{OUTPUT_FOLDER}/dataset.csv')
 data_csv_asb = data_csv[data_csv['Class'] == 1]
 data_aug_csv = pd.DataFrame(columns=COLS_CSV)
 
-"""# Define augmentations
+# Define augmentations
+"""transforms = [
+    A.Compose([
+        A.HorizontalFlip(p=1),
+    ]),
+    A.Compose([
+        A.VerticalFlip(p=1),
+    ]),
+    A.Compose([
+        A.ShiftScaleRotate(p=1),
+    ]),
+    A.Compose([
+        A.RandomBrightness(p=1),
+    ]),
+    A.Compose([
+        A.RandomContrast(p=1),
+    ]),
+    A.Compose([
+        A.ShiftScaleRotate(p=1),
+        A.RandomBrightness(p=1),
+    ]),
+    A.Compose([
+        A.ShiftScaleRotate(p=1),
+        A.RandomContrast(p=1),
+    ]),
+    A.Compose([
+        A.HorizontalFlip(p=1),
+        A.ShiftScaleRotate(p=1),
+        A.RandomBrightness(p=1),
+    ]),
+    A.Compose([
+        A.VerticalFlip(p=1),
+        A.ShiftScaleRotate(p=1),
+        A.RandomBrightness(p=1),
+    ]),
+    A.Compose([
+        A.HorizontalFlip(p=1),
+        A.ShiftScaleRotate(p=1),
+        A.RandomContrast(p=1),
+    ]),
+    A.Compose([
+        A.VerticalFlip(p=1),
+        A.ShiftScaleRotate(p=1),
+        A.RandomContrast(p=1),
+    ]),
+    A.Compose([
+        A.ShiftScaleRotate(p=1),
+        A.RandomBrightness(p=1),
+        A.RandomContrast(p=1),
+    ]),
+    A.Compose([
+        A.HorizontalFlip(p=1),
+        A.ShiftScaleRotate(p=1),
+        A.RandomBrightness(p=1),
+        A.RandomContrast(p=1),
+    ]),
+    A.Compose([
+        A.VerticalFlip(p=1),
+        A.ShiftScaleRotate(p=1),
+        A.RandomBrightness(p=1),
+        A.RandomContrast(p=1),
+    ]),
+    A.Compose([
+        A.VerticalFlip(p=1),
+        A.ShiftScaleRotate(p=1),
+        A.RandomBrightness(p=1),
+        A.RandomContrast(p=1),
+    ]),
+    A.Compose([
+        A.VerticalFlip(p=1),
+        A.ShiftScaleRotate(p=1),
+        A.RandomBrightness(p=1),
+        A.RandomContrast(p=1),
+    ])
+]"""
+
 transforms = [
     A.Compose([
         A.HorizontalFlip(p=1),
@@ -34,9 +108,38 @@ transforms = [
     ]),
     A.Compose([
         A.RandomContrast(p=1),
-    ])
-]"""
-transforms = [
+    ]),
+    A.Compose([
+        A.ShiftScaleRotate(p=1),
+        A.RandomBrightness(p=1),
+    ]),
+    A.Compose([
+        A.ShiftScaleRotate(p=1),
+        A.RandomContrast(p=1),
+    ]),
+    A.Compose([
+        A.HorizontalFlip(p=1),
+        A.ShiftScaleRotate(p=1),
+        A.RandomBrightness(p=1),
+    ]),
+    A.Compose([
+        A.VerticalFlip(p=1),
+        A.ShiftScaleRotate(p=1),
+        A.RandomBrightness(p=1),
+    ]),
+    A.Compose([
+        A.HorizontalFlip(p=1),
+        A.ShiftScaleRotate(p=1),
+        A.RandomContrast(p=1),
+    ]),
+    A.Compose([
+        A.VerticalFlip(p=1),
+        A.ShiftScaleRotate(p=1),
+        A.RandomContrast(p=1),
+    ]),
+]
+
+"""transforms = [
     A.Compose([
         A.HorizontalFlip(p=1)
     ]),
@@ -60,7 +163,7 @@ transforms = [
     A.Compose([
         A.ShiftScaleRotate(p=1),
     ]),
-]
+]"""
 
 os.makedirs(f"{OUTPUT_FOLDER}/Images_aug", exist_ok=True)
 os.makedirs(f"{OUTPUT_FOLDER}/Masks_aug", exist_ok=True)

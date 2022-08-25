@@ -1,4 +1,3 @@
-import random
 import os
 import time
 from datetime import datetime
@@ -10,7 +9,7 @@ import pandas as pd
 import torch
 import torch.nn as nn
 from PIL import Image
-from torch.utils.data import Sampler
+from torch.utils.data import Sampler, WeightedRandomSampler
 from torch.utils.tensorboard import SummaryWriter
 from torchmetrics import MeanMetric
 from torchvision.datasets import VisionDataset
@@ -18,23 +17,27 @@ from torchvision.models import ResNet18_Weights, resnet18
 
 ## Constants
 DATASET_FOLDER = 'dav_dataset'
-EXPERIMENT = "experiment_triplet_1"
+EXPERIMENT = "triplet2"
 TRAIN = True
 TEST = True
-EMBEDDING_DIM = 256
+EMBEDDING_DIM = 128
 
 try:
     os.mkdir(EXPERIMENT)
 except:
     pass
 
+trans_prob = 0.5
 transform_alb = A.Compose([
-    A.HorizontalFlip(p=0.3),
-    A.VerticalFlip(p=0.3),
-    A.ShiftScaleRotate(p=0.3),
-    A.RandomBrightness(p=0.3),
-    A.RandomContrast(p=0.3)
+    A.HorizontalFlip(p=trans_prob),
+    A.VerticalFlip(p=trans_prob),
+    A.ShiftScaleRotate(p=trans_prob),
+    A.RandomBrightness(p=trans_prob),
+    A.RandomContrast(p=trans_prob)
 ])
+
+class_tranform = {2: 0, 1: 1}
+ASBESTOS = 1
 
 
 class AsbestosDataset(VisionDataset):
@@ -48,17 +51,17 @@ class AsbestosDataset(VisionDataset):
     def __getitem__(self, index: int):
 
         item = self.csv.iloc[index]
-        anchor, target = Image.open(item['Image_crop']), item['Class'] - 1
+        anchor, target, csv_class = Image.open(item['Image_crop']), class_tranform[item['Class']], item['Class']
 
         if self.set == 'train' or self.set == 'val_bages':
 
-            positive_item = random.choice(self.csv[self.csv['Class'] == target])
-            positive_img = Image.open(positive_item['Image_crop'])
+            positive_item = self.csv[self.csv['Class'] == csv_class].sample()
+            positive_img = Image.open(positive_item['Image_crop'].item())
 
-            negative_item = random.choice(self.csv[self.csv['Class'] != target])
-            negative_img = Image.open(negative_item['Image_crop'])
+            negative_item = self.csv[self.csv['Class'] != csv_class].sample()
+            negative_img = Image.open(negative_item['Image_crop'].item())
 
-            if target == 0 and self.set == 'train':
+            if target == ASBESTOS and self.set == 'train':
                 positive_img = transform_alb(image=np.array(positive_img))['image']
                 positive_img = Image.fromarray(positive_img)
 
@@ -77,7 +80,10 @@ class AsbestosDataset(VisionDataset):
             return anchor, torch.tensor(target, dtype=torch.float32)
 
     def __len__(self):
-        return self.data.shape[0]
+        return self.csv.shape[0]
+
+    def get_index_class(self, index):
+        return class_tranform[self.csv.iloc[index]['Class']]
 
 
 # Check CUDA
@@ -103,8 +109,14 @@ training_set = AsbestosDataset('train', DATASET_FOLDER, transforms=transforms)
 validation_set = AsbestosDataset('val_bages', DATASET_FOLDER, transforms=transforms)
 test_set = AsbestosDataset('test_bages', DATASET_FOLDER, transforms=transforms)
 
+# Sampler definition
+weights = [0.1, 2]
+samples_weight = np.array([weights[training_set.get_index_class(i)] for i in range(len(training_set))])
+samples_weight = torch.from_numpy(samples_weight)
+sampler = WeightedRandomSampler(samples_weight, len(samples_weight))
+
 # Create data loaders for our datasets; shuffle for training, not for validation
-training_loader = torch.utils.data.DataLoader(training_set, batch_size=60, num_workers=4)
+training_loader = torch.utils.data.DataLoader(training_set, batch_size=60, num_workers=4, sampler=sampler)
 validation_loader = torch.utils.data.DataLoader(validation_set, batch_size=30, shuffle=True, num_workers=1)
 test_loader = torch.utils.data.DataLoader(test_set, batch_size=80, shuffle=False, num_workers=1)
 
@@ -143,7 +155,7 @@ def train_one_epoch(epoch_index, tb_writer):
         negative_out = model(negative_img)
 
         # Compute the loss and its gradients
-        loss = loss_fn(anchor_out, positive_out, negative_out, anchor_label)
+        loss = loss_fn(anchor_out, positive_out, negative_out)
         loss.backward()
         optimizer.step()
 
@@ -185,8 +197,7 @@ if TRAIN:
             vloss_avg = MeanMetric().to(device)
 
             i = 0
-            for  anchor_img, positive_img, negative_img, anchor_label in validation_loader:
-
+            for anchor_img, positive_img, negative_img, anchor_label in validation_loader:
                 anchor_img = anchor_img.to(device)
                 positive_img = positive_img.to(device)
                 negative_img = negative_img.to(device)
@@ -221,6 +232,3 @@ if TRAIN:
         epoch_number += 1
 
     torch.save(model.state_dict(), '{}/model_final'.format(EXPERIMENT))
-
-
-
