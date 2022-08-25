@@ -4,19 +4,36 @@ In this project we can see different methods to resolve a computer vision proble
 
 Fiber-cement detection are a important work for the prevention of disease in the society. These kind of materials can be harmful for the health and we keep it in much of our buildings. This project try to help the companies/governments that works in its remove process.
 
-## Dataset example
-![Images asbestos](dataset_examples/asbestos_grid.png)
-![Images non-asbestos](dataset_examples/non-asbestos_grid.png)
-
 ## Techniques used in this project
-For the purpose of this project we implemented the next models and we found the code in this projecte:
+For the purpose of this project we implemented the next models and found the code in this project:
 - MaskRCNN -> Instances detection/segmentation ([Detectron2](https://github.com/facebookresearch/detectron2))
-- FasterCNN -> Instances detection ([Detectron2](https://github.com/facebookresearch/detectron2))
 - ResNet18 -> Binary classification ([PyTorch](https://pytorch.org/))
 - Triple embedding using ResNet18 -> Embedding Space ([PyTorch](https://pytorch.org/))
 
 ## Code
 
+Preproccesing data:
+- generate_train.py: To transform data using the first version of the masks (Used in training in whole project)
+- generate_test.py: To transform data using the second version of the masks (Used in testing at final results)
+- generate_augmentation.py: Script to generate static data augmentation for feed detectron2.
+- generate_detectron2_inputs.py: Transforming dataset into detectron2 input format.
+
+Mask-RCNN (Detectron2):
+- train_dec2.py: Training script with some testing generations
+- trainer_dec2.py: Custom implementations of trainer class
+- infer_detectron2.py: Script only to infer an image
+
+ResNet (PyTorch):
+- train_resnet.py: Train ResNet
+- results_resnet_by_image.py: Generate a CSV with test set results
+- make_grid_view.py: Make representation a grid representation of results of CSV results.
+
+Embedding Space (PyTorch):
+- train_triplet.py: Train a Triplet Network
+- tsne_triplet.py: Inference and t-SNE generation.
+- svm_triplet.py: Infer and generation of SVM model and results.
+
 ## Results
 
 ## Paper
+> [https://www.overleaf.com/read/zzwmdjbnhnvw](https://www.overleaf.com/read/zzwmdjbnhnvw)
