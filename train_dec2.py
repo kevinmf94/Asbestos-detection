@@ -7,6 +7,7 @@ from detectron2.evaluation import COCOEvaluator, inference_on_dataset
 from detectron2.utils.logger import setup_logger
 from detectron2.utils.visualizer import Visualizer, ColorMode
 from detectron2.data import transforms as T
+import albumentations as A
 
 setup_logger()
 
@@ -20,17 +21,16 @@ from detectron2.data import MetadataCatalog, DatasetCatalog
 from detectron2.engine import DefaultPredictor
 import pickle
 from utils import save_preview_input_gt_output, apply_lut_mask
-from trainer_dec2 import AsbestosTrainer
+from trainer_dec2 import AsbestosTrainer, AlbumentationsWrapper
 
-TRAIN = True
-EVALUATE = True
-EVALUATE_ASBESTOS_CLASSIFICATION = True
+TRAIN = False
+EVALUATE = False
+EVALUATE_ASBESTOS_CLASSIFICATION = False
 GENERATE_EVAL_IMAGES = True
-EXPERIMENT = "output_experiment33"
+EXPERIMENT = "output_experiment49"
 OUTPUT = f"/home/kevinmf94/{EXPERIMENT}"
 
 print("CUDA ON: " + str(torch.cuda.is_available()))
-
 
 def read_dicts(data_set):
     with (open(f'dav_dataset/{data_set}_dec.pkl', "rb")) as file:
@@ -56,7 +56,7 @@ cfg.SOLVER.IMS_PER_BATCH = 45  # This is the real "batch size" commonly known to
 cfg.SOLVER.BASE_LR = 0.001  # pick a good LR
 cfg.SOLVER.MAX_ITER = 6000  # 300 iterations seems good enough for this toy dataset; you will need to train longer for a practical dataset
 cfg.SOLVER.STEPS = []  # do not decay learning rate
-cfg.SOLVER.CHECKPOINT_PERIOD = 1000
+cfg.SOLVER.CHECKPOINT_PERIOD = 500
 cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = 256  # The "RoIHead batch size". 128 is faster, and good enough for this toy dataset (default: 512)
 
 # Quantity of classes
@@ -75,12 +75,23 @@ print(cfg.OUTPUT_DIR)
 os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)
 
 if TRAIN:
+    cfg.WEIGHTED = None
+    cfg.AUG_ASB = []
+    """cfg.AUG_ASB = [
+        AlbumentationsWrapper(A.HorizontalFlip(p=0.5)),
+        AlbumentationsWrapper(A.VerticalFlip(p=0.5)),
+        AlbumentationsWrapper(A.ShiftScaleRotate(p=0.5)),
+        AlbumentationsWrapper(A.RandomBrightness(p=0.5)),
+        AlbumentationsWrapper(A.RandomContrast(p=0.5))
+    ]"""
+
     trainer = AsbestosTrainer(cfg)
     trainer.resume_or_load(resume=False)
     trainer.train()
 
 print("-------- Loading weights --------------")
 cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, "model_final.pth")  # path to the model we just trained
+print(f"Weight: {cfg.MODEL.WEIGHTS}")
 print("-------- Loadeded ---------------------")
 cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7
 predictor = DefaultPredictor(cfg)

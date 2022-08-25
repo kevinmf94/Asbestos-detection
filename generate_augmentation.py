@@ -18,6 +18,81 @@ data_csv_asb = data_csv[data_csv['Class'] == 1]
 data_aug_csv = pd.DataFrame(columns=COLS_CSV)
 
 # Define augmentations
+"""transforms = [
+    A.Compose([
+        A.HorizontalFlip(p=1),
+    ]),
+    A.Compose([
+        A.VerticalFlip(p=1),
+    ]),
+    A.Compose([
+        A.ShiftScaleRotate(p=1),
+    ]),
+    A.Compose([
+        A.RandomBrightness(p=1),
+    ]),
+    A.Compose([
+        A.RandomContrast(p=1),
+    ]),
+    A.Compose([
+        A.ShiftScaleRotate(p=1),
+        A.RandomBrightness(p=1),
+    ]),
+    A.Compose([
+        A.ShiftScaleRotate(p=1),
+        A.RandomContrast(p=1),
+    ]),
+    A.Compose([
+        A.HorizontalFlip(p=1),
+        A.ShiftScaleRotate(p=1),
+        A.RandomBrightness(p=1),
+    ]),
+    A.Compose([
+        A.VerticalFlip(p=1),
+        A.ShiftScaleRotate(p=1),
+        A.RandomBrightness(p=1),
+    ]),
+    A.Compose([
+        A.HorizontalFlip(p=1),
+        A.ShiftScaleRotate(p=1),
+        A.RandomContrast(p=1),
+    ]),
+    A.Compose([
+        A.VerticalFlip(p=1),
+        A.ShiftScaleRotate(p=1),
+        A.RandomContrast(p=1),
+    ]),
+    A.Compose([
+        A.ShiftScaleRotate(p=1),
+        A.RandomBrightness(p=1),
+        A.RandomContrast(p=1),
+    ]),
+    A.Compose([
+        A.HorizontalFlip(p=1),
+        A.ShiftScaleRotate(p=1),
+        A.RandomBrightness(p=1),
+        A.RandomContrast(p=1),
+    ]),
+    A.Compose([
+        A.VerticalFlip(p=1),
+        A.ShiftScaleRotate(p=1),
+        A.RandomBrightness(p=1),
+        A.RandomContrast(p=1),
+    ]),
+    A.Compose([
+        A.VerticalFlip(p=1),
+        A.ShiftScaleRotate(p=1),
+        A.RandomBrightness(p=1),
+        A.RandomContrast(p=1),
+    ]),
+    A.Compose([
+        A.VerticalFlip(p=1),
+        A.ShiftScaleRotate(p=1),
+        A.RandomBrightness(p=1),
+        A.RandomContrast(p=1),
+    ])
+]"""
+
 transforms = [
     A.Compose([
         A.HorizontalFlip(p=1),
@@ -26,17 +101,69 @@ transforms = [
         A.VerticalFlip(p=1),
     ]),
     A.Compose([
-        A.RandomSizedCrop(min_max_height=(200, 256), height=256, width=256, p=1)
+        A.ShiftScaleRotate(p=1),
+    ]),
+    A.Compose([
+        A.RandomBrightness(p=1),
+    ]),
+    A.Compose([
+        A.RandomContrast(p=1),
+    ]),
+    A.Compose([
+        A.ShiftScaleRotate(p=1),
+        A.RandomBrightness(p=1),
+    ]),
+    A.Compose([
+        A.ShiftScaleRotate(p=1),
+        A.RandomContrast(p=1),
     ]),
     A.Compose([
         A.HorizontalFlip(p=1),
-        A.RandomSizedCrop(min_max_height=(200, 256), height=256, width=256, p=1)
+        A.ShiftScaleRotate(p=1),
+        A.RandomBrightness(p=1),
     ]),
     A.Compose([
         A.VerticalFlip(p=1),
-        A.RandomSizedCrop(min_max_height=(200, 256), height=256, width=256, p=1)
-    ])
+        A.ShiftScaleRotate(p=1),
+        A.RandomBrightness(p=1),
+    ]),
+    A.Compose([
+        A.HorizontalFlip(p=1),
+        A.ShiftScaleRotate(p=1),
+        A.RandomContrast(p=1),
+    ]),
+    A.Compose([
+        A.VerticalFlip(p=1),
+        A.ShiftScaleRotate(p=1),
+        A.RandomContrast(p=1),
+    ]),
 ]
+
+"""transforms = [
+    A.Compose([
+        A.HorizontalFlip(p=1)
+    ]),
+    A.Compose([
+        A.VerticalFlip(p=1),
+    ]),
+    A.Compose([
+        A.RandomSizedCrop(min_max_height=(200, 256), height=256, width=256, p=1),
+    ]),
+    A.Compose([
+        A.HorizontalFlip(p=1),
+        A.RandomSizedCrop(min_max_height=(200, 256), height=256, width=256, p=1),
+    ]),
+    A.Compose([
+        A.VerticalFlip(p=1),
+        A.RandomSizedCrop(min_max_height=(200, 256), height=256, width=256, p=1),
+    ]),
+    A.Compose([
+        A.ShiftScaleRotate(p=1),
+    ]),
+    A.Compose([
+        A.ShiftScaleRotate(p=1),
+    ]),
+]"""
 
 os.makedirs(f"{OUTPUT_FOLDER}/Images_aug", exist_ok=True)
 os.makedirs(f"{OUTPUT_FOLDER}/Masks_aug", exist_ok=True)
