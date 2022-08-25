@@ -13,7 +13,7 @@ For the purpose of this project we implemented the next models and found the cod
 ## Code
 
 Preproccesing data:
-- generate_train.py: To transform data using the first version of the masks (Used in training in whole project)
+- generate_train.py: To transform data using the first version of the masks (Used in training in the whole project)
 - generate_test.py: To transform data using the second version of the masks (Used in testing at final results)
 - generate_augmentation.py: Script to generate static data augmentation for feed detectron2.
 - generate_detectron2_inputs.py: Transforming dataset into detectron2 input format.
