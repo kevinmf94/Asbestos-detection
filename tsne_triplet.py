@@ -85,10 +85,7 @@ with torch.no_grad():
         tsne = TSNE(n_components=2, verbose=1, perplexity=i, n_iter=20000)
         result = tsne.fit_transform(x, y)
 
-        """plt.figure(figsize=(16, 10))
-        plt.scatter(result[:,0], result[:, 1], data=y)
-        plt.savefig(f"{EXPERIMENT}/tsne.png")"""
         plot = sns.scatterplot(x=result[:,0], y=result[:, 1], hue=y,
                         palette=sns.color_palette("hls", 2))
-        plt.savefig(f"{EXPERIMENT}/tsne_{i}_20000.png")
+        plt.savefig(f"{EXPERIMENT}/tsne_{i}.png")
         plt.clf()

@@ -50,38 +50,6 @@ class AlbumentationsTransform(Transform):
 
 
 class AlbumentationsWrapper(Augmentation):
-    """
-    Wrap an augmentor form the albumentations library: https://github.com/albu/albumentations.
-    Image, Bounding Box and Segmentation are supported.
-    Example:
-    .. code-block:: python
-        import albumentations as A
-        from detectron2.data import transforms as T
-        from detectron2.data.transforms.albumentations import AlbumentationsWrapper
-
-        augs = T.AugmentationList([
-            AlbumentationsWrapper(A.RandomCrop(width=256, height=256)),
-            AlbumentationsWrapper(A.HorizontalFlip(p=1)),
-            AlbumentationsWrapper(A.RandomBrightnessContrast(p=1)),
-        ])  # type: T.Augmentation
-
-        # Transform XYXY_ABS -> XYXY_REL
-        h, w, _ = IMAGE.shape
-        bbox = np.array(BBOX_XYXY) / [w, h, w, h]
-
-        # Define the augmentation input ("image" required, others optional):
-        input = T.AugInput(IMAGE, boxes=bbox, sem_seg=IMAGE_MASK)
-
-        # Apply the augmentation:
-        transform = augs(input)
-        image_transformed = input.image  # new image
-        sem_seg_transformed = input.sem_seg  # new semantic segmentation
-        bbox_transformed = input.boxes   # new bounding boxes
-
-        # Transform XYXY_REL -> XYXY_ABS
-        h, w, _ = image_transformed.shape
-        bbox_transformed = bbox_transformed * [w, h, w, h]
-    """
 
     def __init__(self, augmentor):
         """

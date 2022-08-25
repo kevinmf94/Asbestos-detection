@@ -5,15 +5,6 @@ from mpl_toolkits.axes_grid1 import ImageGrid
 
 data = pd.read_csv("experiment57/test_set_results.csv")
 
-# fig = plt.figure(figsize=(9., 4.))
-"""grid = ImageGrid(fig, 111,  # similar to subplot(111)
-                 nrows_ncols=(4, 9),
-                 axes_pad=0.1
-                 )"""
-
-
-
-# page = 3
 items = 18
 for page in range(32, 38):
     fig = plt.figure(dpi=300, figsize=(9., 3.))
