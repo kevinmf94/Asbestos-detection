@@ -33,7 +33,13 @@ Embedding Space (PyTorch):
 - tsne_triplet.py: Inference and t-SNE generation.
 - svm_triplet.py: Infer and generation of SVM model and results.
 
-## Results
+## Example code
+
+Mask-RCNN
+> https://colab.research.google.com/drive/1QDlDXubXYIGbU6Rwv1Q0xbh3XcD23ak4?usp=sharing
+
+ResNet
+> https://colab.research.google.com/drive/1UEs3MnlWH7uG-z3D8mPqAy4Fi3l1sMf4?usp=sharing
 
 ## Paper
-> [https://www.overleaf.com/read/zzwmdjbnhnvw](https://www.overleaf.com/read/zzwmdjbnhnvw)
+> [Paper Link](Paper Link)
