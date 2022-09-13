@@ -42,4 +42,4 @@ ResNet
 > https://colab.research.google.com/drive/1UEs3MnlWH7uG-z3D8mPqAy4Fi3l1sMf4?usp=sharing
 
 ## Paper
-> [Paper Link](Paper Link)
+> [TFM_Asbestos_Detection_Kevin_Martin_Fernandez](paper/TFM_Asbestos_Detection_Kevin_Martin_Fernandez.pdf)
