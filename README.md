@@ -8,7 +8,7 @@ Fiber-cement detection are a important work for the prevention of disease in the
 For the purpose of this project we implemented the next models and found the code in this project:
 - MaskRCNN -> Instances detection/segmentation ([Detectron2](https://github.com/facebookresearch/detectron2))
 - ResNet18 -> Binary classification ([PyTorch](https://pytorch.org/))
-- Triple embedding using ResNet18 -> Embedding Space ([PyTorch](https://pytorch.org/))
+- Triplet Network (Embedding space) using ResNet18 -> Metric learning + SVM ([PyTorch](https://pytorch.org/))
 
 ## Code
 
